@@ -3,136 +3,136 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YM Chat - النسخة الاحترافية</title>
+  <title>YM Chat - النظام المتكامل</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg-main: #0f172a; --bg-sidebar: #1e293b; --bg-chat: #0b1121;
       --border-color: #334155; --text-main: #f8fafc; --text-muted: #94a3b8;
-      --primary: #3b82f6; --primary-hover: #2563eb;
+      --primary: #3b82f6; --primary-hover: #2563eb; --success: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
     body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; align-items: center; justify-content: center; }
     .hidden { display: none !important; }
     
-    /* Login Screen */
+    /* Login */
     .auth-card { background: var(--bg-sidebar); padding: 40px; border-radius: 20px; width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .auth-card input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: white; }
-    .auth-card button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+    .auth-card button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
     
     /* App Layout */
     .app-container { display: flex; width: 100%; max-width: 1200px; height: 95vh; background: var(--bg-sidebar); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
     
     /* Sidebar */
-    .sidebar { width: 350px; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 20px; background: #161b22; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+    .sidebar { width: 360px; border-left: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 15px 20px; background: #161b22; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+    
+    /* Search Box */
+    .search-box { padding: 10px 15px; background: var(--bg-main); border-bottom: 1px solid var(--border-color); }
+    .search-box input { width: 100%; padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-sidebar); color: white; outline: none; font-size: 13px; }
+    
     .tabs { display: flex; background: var(--bg-main); }
-    .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); transition: 0.3s; }
+    .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 14px; transition: 0.3s; }
     .tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: bold; }
     .user-list { flex: 1; overflow-y: auto; padding: 10px; }
     
-    .user-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+    .user-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-bottom: 5px; }
     .user-item:hover { background: var(--bg-main); }
-    .user-avatar { width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .user-info { flex: 1; }
-    .user-name { font-weight: bold; font-size: 15px; }
-    .add-btn { background: var(--primary); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2563eb); display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+    .user-info { flex: 1; overflow: hidden; }
+    .user-name { font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .add-btn { background: var(--primary); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    .add-btn.pending { background: #64748b; cursor: default; }
     
-    /* Main Chat */
+    /* Chat Area */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; }
     .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-chat); z-index: 10; color: var(--text-muted); }
     
     .chat-header { padding: 15px 20px; background: #161b22; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
-    .chat-header-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; margin-right: 5px; border-radius: 50%; transition: 0.3s; }
-    .chat-header-actions button:hover { color: var(--primary); background: var(--bg-main); }
-    
     .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    
+    .message-bubble { max-width: 65%; padding: 10px 15px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+    .message-bubble.me { background: var(--primary); align-self: flex-start; border-bottom-right-radius: 2px; }
+    .message-bubble.other { background: var(--bg-sidebar); align-self: flex-end; border-bottom-left-radius: 2px; }
     
     .chat-input { padding: 15px 20px; background: #161b22; display: flex; gap: 10px; align-items: center; }
     .chat-input input { flex: 1; padding: 12px 20px; border-radius: 30px; border: none; background: var(--bg-main); color: white; outline: none; }
-    .icon-btn { width: 45px; height: 45px; border-radius: 50%; border: none; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
-    .icon-btn.mic { background: #10b981; }
+    .icon-btn { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- تسجيل الدخول -->
+  <!-- الدخول -->
   <div id="authContainer" class="auth-card">
     <h2>YM Chat</h2>
-    <p style="color: #94a3b8; margin-bottom: 20px;">تسجيل الدخول للنظام الجديد</p>
+    <p style="color: #94a3b8; margin-bottom: 20px; font-size: 14px;">سجل دخولك لبدء المحادثة</p>
     <input type="email" id="emailInput" placeholder="البريد الإلكتروني">
     <input type="password" id="passwordInput" placeholder="كلمة المرور">
-    <button onclick="handleAuth()">دخول / تسجيل جديد</button>
+    <button onclick="handleAuth()">دخول / حساب جديد</button>
   </div>
 
   <!-- التطبيق -->
   <div id="appContainer" class="app-container hidden">
-    <!-- القائمة الجانبية -->
+    <!-- الجانب الأيمن -->
     <div class="sidebar">
       <div class="sidebar-header">
-        <h3 id="myEmail">حسابي</h3>
-        <button onclick="logout()" style="background: transparent; border: 1px solid #334155; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">خروج</button>
+        <h3 id="myEmail" style="font-size: 16px;">حسابي</h3>
+        <button onclick="logout()" style="background: transparent; border: 1px solid #334155; color: white; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">خروج</button>
+      </div>
+      
+      <!-- مربع البحث -->
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 بحث عن مستخدم بالإيميل..." oninput="searchUsers()">
       </div>
       
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('friends')">أصدقائي</div>
-        <div class="tab" onclick="switchTab('suggestions')">اقتراحات جديدة</div>
+        <div class="tab active" id="tabFriends" onclick="switchTab('friends')">الأصدقاء</div>
+        <div class="tab" id="tabRequests" onclick="switchTab('requests')">الطلبات</div>
+        <div class="tab" id="tabSuggestions" onclick="switchTab('suggestions')">مقترحين</div>
       </div>
 
-      <div id="userList" class="user-list">
-        <!-- سيتم إضافة الأشخاص هنا برمجياً -->
-      </div>
+      <div id="userList" class="user-list"></div>
     </div>
 
-    <!-- منطقة الدردشة -->
+    <!-- الجانب الأيسر (الدردشة) -->
     <div class="chat-area">
-      <!-- الشاشة المبدئية -->
       <div id="emptyState" class="empty-state">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1" style="margin-bottom: 20px;">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <h2>ابدأ المحادثة</h2>
-        <p>قم باختيار صديق من القائمة الجانبية لإرسال رسالة</p>
+        <p>قم باختيار صديق من القائمة للبدء في المحادثة</p>
       </div>
 
-      <!-- واجهة المحادثة (مخفية حتى يتم اختيار صديق) -->
       <div id="chatActive" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
         <div class="chat-header">
-          <div style="display: flex; align-items: center; gap: 15px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
             <div class="user-avatar" id="activeAvatar">Y</div>
-            <div class="user-name" id="activeName">اسم الصديق</div>
-          </div>
-          <div class="chat-header-actions">
-            <button title="مكالمة فيديو" onclick="alert('سيتم تفعيل مكالمات الفيديو في التحديث القادم!')">🎥</button>
-            <button title="مكالمة صوتية" onclick="alert('سيتم تفعيل المكالمات الصوتية في التحديث القادم!')">📞</button>
+            <div class="user-name" id="activeName">الاسم</div>
           </div>
         </div>
         
-        <div class="messages" id="messagesBox">
-           <div style="text-align: center; color: #94a3b8; font-size: 13px;">المحادثات مشفرة ومحفوظة بينكم فقط</div>
-        </div>
+        <div class="messages" id="messagesBox"></div>
 
         <div class="chat-input">
-          <input type="text" placeholder="اكتب رسالتك هنا..." disabled>
-          <button class="icon-btn mic" title="تسجيل صوت" onclick="alert('برمجة المايكروفون ستكون في الخطوة القادمة!')">🎙️</button>
-          <button class="icon-btn">➤</button>
+          <input type="text" id="msgInput" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter') sendMessage()">
+          <button class="icon-btn" onclick="sendMessage()">➤</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ⚠️ ضع مفاتيحك هنا ⚠️
+    // ⚠️ ضع بياناتك الخاصة هنا
     const SUPABASE_URL = 'https://rbvmdmkdntbushtgylhp.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_MISq_dmU3dabAFLHN85OBA_hv7oSdma';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     let currentUser = null;
+    let activeChatUser = null;
+    let currentTab = 'friends';
 
     async function handleAuth() {
-      const email = document.getElementById('emailInput').value;
-      const password = document.getElementById('passwordInput').value;
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      if(!email || !password) return alert('يرجى كتابة البريد وكلمة المرور');
       
       let { data, error } = await db.auth.signInWithPassword({ email, password });
       
@@ -140,8 +140,6 @@
         const res = await db.auth.signUp({ email, password });
         if(res.error) return alert(res.error.message);
         data = res.data;
-        // حفظ المستخدم في جدول Profiles الجديد
-        await db.from('profiles').insert([{ id: data.user.id, email: email }]);
       }
       
       currentUser = data.user;
@@ -152,40 +150,143 @@
       document.getElementById('authContainer').classList.add('hidden');
       document.getElementById('appContainer').classList.remove('hidden');
       document.getElementById('myEmail').innerText = currentUser.email.split('@')[0];
-      loadSuggestions();
+      switchTab('friends');
+      listenToRealtime();
     }
 
     function switchTab(tab) {
+      currentTab = tab;
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
+      if(tab==='friends') document.getElementById('tabFriends').classList.add('active');
+      if(tab==='requests') document.getElementById('tabRequests').classList.add('active');
+      if(tab==='suggestions') document.getElementById('tabSuggestions').classList.add('active');
       
-      if(tab === 'suggestions') loadSuggestions();
-      else document.getElementById('userList').innerHTML = '<p style="text-align:center; padding: 20px; color: #94a3b8;">سيتم جلب قائمة الأصدقاء قريباً</p>';
+      document.getElementById('searchInput').value = '';
+      loadTabContent();
     }
 
-    // جلب مستخدمين لاقتراحهم
-    async function loadSuggestions() {
-      const { data, error } = await db.from('profiles').select('*').neq('id', currentUser.id).limit(10);
+    async function loadTabContent() {
       const list = document.getElementById('userList');
-      list.innerHTML = '';
-      
-      if(data) {
-        data.forEach(user => {
-          const initial = user.email.charAt(0).toUpperCase();
-          const name = user.email.split('@')[0];
+      list.innerHTML = '<p style="text-align:center; padding:20px; color:#94a3b8;">جاري التحميل...</p>';
+
+      if (currentTab === 'suggestions') {
+        // جلب جميع المستخدمين ما عدا المستخدم الحالي
+        const { data } = await db.from('profiles').select('*').neq('id', currentUser.id);
+        renderUsers(data, 'add');
+      } 
+      else if (currentTab === 'requests') {
+        // جلب طلبات الصداقة الواردة
+        const { data } = await db.from('friends').select('*, profiles!sender_id(*)').eq('receiver_id', currentUser.id).eq('status', 'pending');
+        list.innerHTML = '';
+        if(!data || data.length === 0) return list.innerHTML = '<p style="text-align:center; padding:20px; color:#94a3b8;">لا توجد طلبات صداقة</p>';
+        
+        data.forEach(req => {
+          const user = req.profiles;
           list.innerHTML += `
             <div class="user-item">
-              <div class="user-avatar">${initial}</div>
-              <div class="user-info"><div class="user-name">${name}</div></div>
-              <button class="add-btn" onclick="addFriend('${user.id}')">إضافة</button>
-            </div>
-          `;
+              <div class="user-avatar">${user.email.charAt(0).toUpperCase()}</div>
+              <div class="user-info"><div class="user-name">${user.email.split('@')[0]}</div></div>
+              <button class="add-btn" onclick="acceptFriend('${req.id}')">قبول</button>
+            </div>`;
+        });
+      } 
+      else if (currentTab === 'friends') {
+        // جلب الأصدقاء المقبولين
+        const { data } = await db.from('friends').select('*, sender:profiles!sender_id(*), receiver:profiles!receiver_id(*)')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+          .eq('status', 'accepted');
+
+        list.innerHTML = '';
+        if(!data || data.length === 0) return list.innerHTML = '<p style="text-align:center; padding:20px; color:#94a3b8;">لا يوجد أصدقاء بعد</p>';
+        
+        data.forEach(f => {
+          const friend = f.sender_id === currentUser.id ? f.receiver : f.sender;
+          list.innerHTML += `
+            <div class="user-item" onclick="openChat('${friend.id}', '${friend.email}')">
+              <div class="user-avatar">${friend.email.charAt(0).toUpperCase()}</div>
+              <div class="user-info"><div class="user-name">${friend.email.split('@')[0]}</div></div>
+            </div>`;
         });
       }
     }
 
-    function addFriend(id) {
-      alert('تم إرسال طلب الصداقة! (سيتم برمجة استلام الطلب في المرحلة القادمة)');
+    // البحث عن المستخدمين
+    async function searchUsers() {
+      const query = document.getElementById('searchInput').value.trim();
+      if(!query) return loadTabContent();
+      
+      const { data } = await db.from('profiles').select('*').neq('id', currentUser.id).ilike('email', `%${query}%`);
+      renderUsers(data, 'add');
+    }
+
+    function renderUsers(users, type) {
+      const list = document.getElementById('userList');
+      list.innerHTML = '';
+      if(!users || users.length === 0) return list.innerHTML = '<p style="text-align:center; padding:20px; color:#94a3b8;">لم يتم العثور على أسباب</p>';
+
+      users.forEach(user => {
+        list.innerHTML += `
+          <div class="user-item">
+            <div class="user-avatar">${user.email.charAt(0).toUpperCase()}</div>
+            <div class="user-info"><div class="user-name">${user.email.split('@')[0]}</div></div>
+            <button class="add-btn" onclick="sendFriendRequest('${user.id}')">إضافة</button>
+          </div>`;
+      });
+    }
+
+    async function sendFriendRequest(receiverId) {
+      const { error } = await db.from('friends').insert([{ sender_id: currentUser.id, receiver_id: receiverId, status: 'pending' }]);
+      if(error) alert('تم إرسال الطلب مسبقاً أو حدث خطأ');
+      else alert('تم إرسال طلب الصداقة بنجاح!');
+    }
+
+    async function acceptFriend(requestId) {
+      await db.from('friends').update({ status: 'accepted' }).eq('id', requestId);
+      switchTab('friends');
+    }
+
+    // فتح المحادثة
+    async function openChat(friendId, friendEmail) {
+      activeChatUser = { id: friendId, email: friendEmail };
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('chatActive').classList.remove('hidden');
+      document.getElementById('activeName').innerText = friendEmail.split('@')[0];
+      document.getElementById('activeAvatar').innerText = friendEmail.charAt(0).toUpperCase();
+      loadMessages();
+    }
+
+    async function loadMessages() {
+      const { data } = await db.from('messages').select('*')
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChatUser.id}),and(sender_id.eq.${activeChatUser.id},receiver_id.eq.${currentUser.id})`)
+        .order('created_at', { ascending: true });
+        
+      const box = document.getElementById('messagesBox');
+      box.innerHTML = '';
+      if(data) {
+        data.forEach(m => {
+          const isMe = m.sender_id === currentUser.id;
+          box.innerHTML += `<div class="message-bubble ${isMe ? 'me' : 'other'}">${m.content}</div>`;
+        });
+        box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const content = input.value.trim();
+      if(!content || !activeChatUser) return;
+      
+      input.value = '';
+      await db.from('messages').insert([{ sender_id: currentUser.id, receiver_id: activeChatUser.id, content }]);
+      loadMessages();
+    }
+
+    function listenToRealtime() {
+      db.channel('messages-db').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        if(activeChatUser && (payload.new.sender_id === activeChatUser.id || payload.new.receiver_id === activeChatUser.id)) {
+          loadMessages();
+        }
+      }).subscribe();
     }
 
     async function logout() { await db.auth.signOut(); location.reload(); }
