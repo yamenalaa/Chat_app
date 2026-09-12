@@ -129,17 +129,22 @@
     let activeChatUser = null;
     let currentTab = 'friends';
 
-    async function handleAuth() {
+async function handleAuth() {
       const email = document.getElementById('emailInput').value.trim();
       const password = document.getElementById('passwordInput').value.trim();
       if(!email || !password) return alert('يرجى كتابة البريد وكلمة المرور');
       
+      // محاولة تسجيل الدخول أولاً
       let { data, error } = await db.auth.signInWithPassword({ email, password });
       
+      // إذا لم يكن الحساب موجوداً، نقوم بإنشائه تلقائياً
       if (error) {
         const res = await db.auth.signUp({ email, password });
-        if(res.error) return alert(res.error.message);
+        if(res.error) {
+          return alert('خطأ: ' + res.error.message);
+        }
         data = res.data;
+        alert('تم إنشاء الحساب وتسجيل الدخول بنجاح!');
       }
       
       currentUser = data.user;
