@@ -1,177 +1,528 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>منصة المحادثة الفورية</title>
+  <title>تطبيق دردشة YM</title>
+
+  <!-- استدعاء خط Cairo للغة العربية -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- استدعاء مكتبة Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background: #1e293b; border-radius: 12px; padding: 24px; width: 100%; max-width: 800px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-    .hidden { display: none !important; }
-    
-    /* Auth Form */
-    .auth-container { max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-    h2 { text-align: center; color: #38bdf8; margin-bottom: 8px; }
-    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; }
-    input:focus { border-color: #38bdf8; }
-    button { padding: 12px; border-radius: 8px; border: none; background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    button:hover { background: #0369a1; }
-    .switch-btn { background: transparent; color: #94a3b8; font-size: 14px; margin-top: 8px; }
-    .switch-btn:hover { color: #f8fafc; background: transparent; }
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --bubble-own: #3b82f6;
+      --bubble-other: #334155;
+    }
 
-    /* Chat Layout */
-    .chat-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #334155; margin-bottom: 16px; }
-    .chat-box { height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
-    .message { background: #334155; padding: 10px 14px; border-radius: 8px; max-width: 80%; width: fit-content; position: relative; }
-    .message.own { background: #0369a1; align-self: flex-end; }
-    .message .sender { font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 4px; display: block; }
-    .message .text { font-size: 14px; word-break: break-word; }
-    .message .delete-btn { font-size: 10px; color: #ef4444; background: none; border: none; cursor: pointer; padding: 0; margin-top: 4px; display: block; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', sans-serif;
+    }
 
-    .chat-input-area { display: flex; gap: 8px; margin-top: 16px; }
-    .chat-input-area input { flex: 1; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+    }
 
-    /* Admin Panel */
-    .admin-panel { margin-top: 20px; padding-top: 16px; border-top: 2px dashed #334155; }
-    .user-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
-    .user-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
-    .btn-danger { background: #dc2626; padding: 6px 12px; font-size: 12px; }
-    .btn-danger:hover { background: #b91c1c; }
-    .btn-success { background: #16a34a; padding: 6px 12px; font-size: 12px; }
-    .btn-success:hover { background: #15803d; }
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 10px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      background-color: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 12px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--text-muted);
+    }
+
+    .btn-secondary:hover {
+      color: var(--text-main);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Chat UI */
+    .chat-container {
+      width: 100%;
+      max-width: 800px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .chat-header {
+      padding: 20px;
+      background-color: #161b22;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .messages-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: var(--bg-main);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* رسائل المحادثة - احترافية */
+    .message {
+      display: flex;
+      gap: 10px;
+      max-width: 85%;
+      animation: slideUp 0.3s ease;
+    }
+
+    .message.own {
+      align-self: flex-start;
+      flex-direction: row-reverse;
+    }
+
+    .message.other {
+      align-self: flex-end;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      flex-shrink: 0;
+      color: white;
+    }
+
+    .own .avatar {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .other .avatar {
+      background: linear-gradient(135deg, #64748b, #475569);
+    }
+
+    .bubble-wrapper {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .own .bubble-wrapper {
+      align-items: flex-start;
+    }
+
+    .other .bubble-wrapper {
+      align-items: flex-end;
+    }
+
+    .sender-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.5;
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    .own .bubble {
+      background-color: var(--bubble-own);
+      color: #ffffff;
+      border-top-right-radius: 4px;
+    }
+
+    .other .bubble {
+      background-color: var(--bubble-other);
+      color: #f8fafc;
+      border-top-left-radius: 4px;
+    }
+
+    .msg-time {
+      font-size: 10px;
+      opacity: 0.7;
+      margin-top: 6px;
+      text-align: left;
+      display: block;
+    }
+
+    .other .msg-time {
+      text-align: right;
+    }
+
+    .chat-input-wrapper {
+      padding: 20px;
+      background-color: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chat-input-wrapper input {
+      flex: 1;
+      padding: 16px 20px;
+      border-radius: 30px;
+      margin: 0;
+    }
+
+    .chat-input-wrapper button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .alert-error {
+      background-color: rgba(248, 81, 73, 0.1);
+      border: 1px solid #f85149;
+      color: #ff7b72;
+    }
   </style>
 </head>
+
 <body>
 
-  <!-- شاشة التسجيل وتكوين الحساب -->
-  <div id="authContainer" class="card auth-container">
-    <h2 id="authTitle">تسجيل الدخول</h2>
-    <input type="email" id="authEmail" placeholder="البريد الإلكتروني">
-    <input type="password" id="authPassword" placeholder="كلمة السر">
-    <button id="authPrimaryBtn" onclick="handleAuth()">دخول</button>
-    <button class="switch-btn" id="authToggleBtn" onclick="toggleAuthMode()">ليس لديك حساب؟ إنشاء حساب جديد</button>
+  <!-- واجهة تسجيل الدخول -->
+  <div id="authContainer" class="container">
+    <div class="card">
+      <h2 id="authTitle">تسجيل الدخول</h2>
+      <p class="subtitle" id="authSubtitle">مرحباً بعودتك إلى YM Chat</p>
+
+      <div id="alertBox" class="alert alert-error hidden"></div>
+
+      <div class="input-group">
+        <input type="email" id="emailInput" placeholder="البريد الإلكتروني" required>
+      </div>
+      <div class="input-group">
+        <input type="password" id="passwordInput" placeholder="كلمة المرور" required>
+      </div>
+
+      <button id="authBtn" class="btn-primary" onclick="handleAuth()">دخول</button>
+      <button id="toggleBtn" class="btn-secondary" onclick="toggleAuthMode()">ليس لديك حساب؟ إنشاء حساب جديد</button>
+    </div>
   </div>
 
-  <!-- شاشة المحادثة -->
-  <div id="chatContainer" class="card hidden">
+  <!-- واجهة المحادثة -->
+  <div id="chatContainer" class="chat-container hidden">
     <div class="chat-header">
-      <div>
-        <h3>غرفة المحادثة العامة</h3>
-        <small id="userBadge" style="color: #94a3b8;"></small>
+      <div class="user-info">
+        <div class="status-dot"></div>
+        <span id="userDisplay">مرحباً بك</span>
       </div>
-      <button onclick="logout()" class="btn-danger">تسجيل الخروج</button>
+      <button class="btn-secondary"
+        style="width: auto; padding: 8px 16px; margin: 0; border: 1px solid var(--border-color);"
+        onclick="logout()">خروج</button>
     </div>
 
-    <div class="chat-box" id="chatBox"></div>
+    <div id="messagesBox" class="messages-box"></div>
 
-    <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا..." onkeydown="if(event.key==='Enter') sendMessage()">
-      <button onclick="sendMessage()">إرسال</button>
-    </div>
-
-    <!-- لوحة تحكم الأدمن -->
-    <div id="adminPanel" class="admin-panel hidden">
-      <h4 style="color: #f59e0b;">لوحة تحكم المسؤول (Admin)</h4>
-      <div class="user-list" id="userList"></div>
+    <div class="chat-input-wrapper">
+      <input type="text" id="messageInput" placeholder="اكتب رسالة..."
+        onkeydown="if(event.key === 'Enter') sendMessage()">
+      <button class="btn-primary" onclick="sendMessage()">
+        <!-- أيقونة إرسال -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
     </div>
   </div>
 
   <script>
-    // === ضع بيانات مشروعك هنا ===
-    const SUPABASE_URL = 'https://rbvmdmkdntbushtgylhp.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_MISq_dmU3dabAFLHN85OBA_hv7oSdma';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ⚠️⚠️ ضع روابط ومفاتيح SUPABASE الخاصة بك هنا ⚠️⚠️
+    const SUPABASE_URL = 'ضع_الرابط_هنا';
+    const SUPABASE_KEY = 'ضع_المفتاح_الطويل_هنا';
+    // ===============================================
 
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let isSignUp = false;
     let currentUser = null;
-    let currentUserProfile = null;
-    let isSignUpMode = false;
-
-    // تهيئة الجلسة عند التحميل
-    window.onload = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setupUser(session.user);
-      }
-    };
 
     function toggleAuthMode() {
-      isSignUpMode = !isSignUpMode;
-      document.getElementById('authTitle').innerText = isSignUpMode ? 'حساب جديد' : 'تسجيل الدخول';
-      document.getElementById('authPrimaryBtn').innerText = isSignUpMode ? 'إنشاء الحساب' : 'دخول';
-      document.getElementById('authToggleBtn').innerText = isSignUpMode ? 'لديك حساب بالفعل؟ دخول' : 'ليس لديك حساب؟ إنشاء حساب جديد';
+      isSignUp = !isSignUp;
+      document.getElementById('authTitle').innerText = isSignUp ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
+      document.getElementById('authSubtitle').innerText = isSignUp ? 'انضم إلى مجتمع YM Chat' : 'مرحباً بعودتك إلى YM Chat';
+      document.getElementById('authBtn').innerText = isSignUp ? 'إنشاء الحساب' : 'دخول';
+      document.getElementById('toggleBtn').innerText = isSignUp ? 'لديك حساب بالفعل؟ تسجيل الدخول' : 'ليس لديك حساب؟ إنشاء حساب جديد';
+      hideAlert();
+    }
+
+    function showAlert(msg) {
+      const box = document.getElementById('alertBox');
+      box.innerText = msg;
+      box.classList.remove('hidden');
+    }
+
+    function hideAlert() {
+      document.getElementById('alertBox').classList.add('hidden');
     }
 
     async function handleAuth() {
-      const email = document.getElementById('authEmail').value;
-      const password = document.getElementById('authPassword').value;
+      hideAlert();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      const btn = document.getElementById('authBtn');
 
-      if (!email || !password) return alert('يرجى إدخال البريد وكلمة السر');
-
-      if (isSignUpMode) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) alert(error.message);
-        else alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) alert(error.message);
-        else setupUser(data.user);
-      }
-    }
-
-    async function setupUser(user) {
-      currentUser = user;
-      
-      // جلب بيانات الملف الشخصي والصلاحيات
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      currentUserProfile = profile;
-
-      if (profile.is_banned) {
-        alert('حسابك محظور من المشاركة في المحادثة.');
-        await supabase.auth.signOut();
+      if (!email || !password) {
+        showAlert('يرجى تعبئة جميع الحقول');
         return;
       }
 
-      document.getElementById('authContainer').classList.add('hidden');
-      document.getElementById('chatContainer').classList.remove('hidden');
-      document.getElementById('userBadge').innerText = `${profile.email} (${profile.role === 'admin' ? 'مسؤول' : 'مستخدم'})`;
+      btn.innerText = 'جاري التحميل...';
+      btn.disabled = true;
 
-      if (profile.role === 'admin') {
-        document.getElementById('adminPanel').classList.remove('hidden');
-        loadUsers();
+      if (isSignUp) {
+        const { data, error } = await db.auth.signUp({ email, password });
+        if (error) showAlert(error.message);
+        else {
+          alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
+          toggleAuthMode();
+        }
+      } else {
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+        if (error) showAlert('بيانات الدخول غير صحيحة');
+        else {
+          currentUser = data.user;
+          showChat();
+        }
       }
 
+      btn.disabled = false;
+      btn.innerText = isSignUp ? 'إنشاء الحساب' : 'دخول';
+    }
+
+    async function checkSession() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        showChat();
+      }
+    }
+
+    function showChat() {
+      document.getElementById('authContainer').classList.add('hidden');
+      document.getElementById('chatContainer').classList.remove('hidden');
+      document.getElementById('userDisplay').innerText = currentUser.email.split('@')[0];
       loadMessages();
-      listenForRealtime();
+      subscribeToMessages();
+    }
+
+    async function logout() {
+      await db.auth.signOut();
+      location.reload();
     }
 
     async function loadMessages() {
-      const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      const chatBox = document.getElementById('chatBox');
-      chatBox.innerHTML = '';
-      messages.forEach(msg => appendMessage(msg));
-      chatBox.scrollTop = chatBox.scrollHeight;
+      const { data, error } = await db.from('messages').select('*').order('created_at', { ascending: true });
+      if (error) return;
+
+      const box = document.getElementById('messagesBox');
+      box.innerHTML = '';
+      data.forEach(msg => appendMessage(msg));
+      scrollToBottom();
     }
 
     function appendMessage(msg) {
-      const chatBox = document.getElementById('chatBox');
-      const isOwn = currentUser && msg.user_id === currentUser.id;
-      const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+      const box = document.getElementById('messagesBox');
+      const div = document.createElement('div');
+      const isOwn = msg.user_id === currentUser.id;
 
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `message ${isOwn ? 'own' : ''}`;
-      msgDiv.id = `msg-${msg.id}`;
+      // استخراج الوقت وأول حرف
+      const time = new Date(msg.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const initial = msg.user_email.charAt(0).toUpperCase();
+      const senderName = isOwn ? 'أنت' : msg.user_email.split('@')[0];
 
-      let deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage(${msg.id})">حذف الرسالة</button>` : '';
-
-      msgDiv.innerHTML = `
-        <span class="sender">${msg.user_email}</span>
-        <div class="text">${msg.content}</div>
-        ${deleteBtnHtml}
+      div.className = `message ${isOwn ? 'own' : 'other'}`;
+      div.innerHTML = `
+        <div class="avatar">${initial}</div>
+        <div class="bubble-wrapper">
+            <span class="sender-name">${senderName}</span>
+            <div class="bubble">
+                ${escapeHtml(msg.content)}
+                <span class="msg-time">${time}</span>
+            </div>
+        </div>
       `;
-      chatBox.appendChild(msgDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
+      box.appendChild(div);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      const box = document.getElementById('messagesBox');
+      box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
     }
 
     async function sendMessage() {
@@ -179,59 +530,27 @@
       const content = input.value.trim();
       if (!content) return;
 
-      const { error } = await supabase.from('messages').insert([
-        { user_id: currentUser.id, user_email: currentUser.email, content }
-      ]);
-
-      if (error) alert('فشل الإرسال: ' + error.message);
-      else input.value = '';
+      input.value = '';
+      await db.from('messages').insert([{
+        user_id: currentUser.id,
+        user_email: currentUser.email,
+        content: content
+      }]);
     }
 
-    function listenForRealtime() {
-      supabase.channel('public:messages')
+    function subscribeToMessages() {
+      db.channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           appendMessage(payload.new);
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
-          const el = document.getElementById(`msg-${payload.old.id}`);
-          if (el) el.remove();
-        })
-        .subscribe();
+        }).subscribe();
     }
 
-    // === وظائف المسؤول (Admin) ===
-    async function deleteMessage(id) {
-      await supabase.from('messages').delete().eq('id', id);
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    async function loadUsers() {
-      const { data: users } = await supabase.from('profiles').select('*');
-      const userList = document.getElementById('userList');
-      userList.innerHTML = '';
-
-      users.forEach(u => {
-        if (u.id === currentUser.id) return;
-        const div = document.createElement('div');
-        div.className = 'user-item';
-        div.innerHTML = `
-          <span>${u.email} [${u.role}]</span>
-          <button class="${u.is_banned ? 'btn-success' : 'btn-danger'}" onclick="toggleBan('${u.id}', ${u.is_banned})">
-            ${u.is_banned ? 'إلغاء الحظر' : 'حظر'}
-          </button>
-        `;
-        userList.appendChild(div);
-      });
-    }
-
-    async function toggleBan(userId, currentStatus) {
-      await supabase.from('profiles').update({ is_banned: !currentStatus }).eq('id', userId);
-      loadUsers();
-    }
-
-    async function logout() {
-      await supabase.auth.signOut();
-      location.reload();
-    }
+    checkSession();
   </script>
 </body>
+
 </html>
