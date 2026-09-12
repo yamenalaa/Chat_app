@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة المحادثة الفورية</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 24px; width: 100%; max-width: 800px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .hidden { display: none !important; }
+    
+    /* Auth Form */
+    .auth-container { max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    h2 { text-align: center; color: #38bdf8; margin-bottom: 8px; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    button { padding: 12px; border-radius: 8px; border: none; background: #0284c7; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:hover { background: #0369a1; }
+    .switch-btn { background: transparent; color: #94a3b8; font-size: 14px; margin-top: 8px; }
+    .switch-btn:hover { color: #f8fafc; background: transparent; }
+
+    /* Chat Layout */
+    .chat-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #334155; margin-bottom: 16px; }
+    .chat-box { height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 8px; }
+    .message { background: #334155; padding: 10px 14px; border-radius: 8px; max-width: 80%; width: fit-content; position: relative; }
+    .message.own { background: #0369a1; align-self: flex-end; }
+    .message .sender { font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 4px; display: block; }
+    .message .text { font-size: 14px; word-break: break-word; }
+    .message .delete-btn { font-size: 10px; color: #ef4444; background: none; border: none; cursor: pointer; padding: 0; margin-top: 4px; display: block; }
+
+    .chat-input-area { display: flex; gap: 8px; margin-top: 16px; }
+    .chat-input-area input { flex: 1; }
+
+    /* Admin Panel */
+    .admin-panel { margin-top: 20px; padding-top: 16px; border-top: 2px dashed #334155; }
+    .user-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+    .user-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .btn-danger { background: #dc2626; padding: 6px 12px; font-size: 12px; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #16a34a; padding: 6px 12px; font-size: 12px; }
+    .btn-success:hover { background: #15803d; }
+  </style>
+</head>
+<body>
+
+  <!-- شاشة التسجيل وتكوين الحساب -->
+  <div id="authContainer" class="card auth-container">
+    <h2 id="authTitle">تسجيل الدخول</h2>
+    <input type="email" id="authEmail" placeholder="البريد الإلكتروني">
+    <input type="password" id="authPassword" placeholder="كلمة السر">
+    <button id="authPrimaryBtn" onclick="handleAuth()">دخول</button>
+    <button class="switch-btn" id="authToggleBtn" onclick="toggleAuthMode()">ليس لديك حساب؟ إنشاء حساب جديد</button>
+  </div>
+
+  <!-- شاشة المحادثة -->
+  <div id="chatContainer" class="card hidden">
+    <div class="chat-header">
+      <div>
+        <h3>غرفة المحادثة العامة</h3>
+        <small id="userBadge" style="color: #94a3b8;"></small>
+      </div>
+      <button onclick="logout()" class="btn-danger">تسجيل الخروج</button>
+    </div>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="chat-input-area">
+      <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()">إرسال</button>
+    </div>
+
+    <!-- لوحة تحكم الأدمن -->
+    <div id="adminPanel" class="admin-panel hidden">
+      <h4 style="color: #f59e0b;">لوحة تحكم المسؤول (Admin)</h4>
+      <div class="user-list" id="userList"></div>
+    </div>
+  </div>
+
+  <script>
+    // === ضع بيانات مشروعك هنا ===
+    const SUPABASE_URL = 'https://rbvmdmkdntbushtgylhp.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_MISq_dmU3dabAFLHN85OBA_hv7oSdma';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let currentUserProfile = null;
+    let isSignUpMode = false;
+
+    // تهيئة الجلسة عند التحميل
+    window.onload = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setupUser(session.user);
+      }
+    };
+
+    function toggleAuthMode() {
+      isSignUpMode = !isSignUpMode;
+      document.getElementById('authTitle').innerText = isSignUpMode ? 'حساب جديد' : 'تسجيل الدخول';
+      document.getElementById('authPrimaryBtn').innerText = isSignUpMode ? 'إنشاء الحساب' : 'دخول';
+      document.getElementById('authToggleBtn').innerText = isSignUpMode ? 'لديك حساب بالفعل؟ دخول' : 'ليس لديك حساب؟ إنشاء حساب جديد';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+
+      if (!email || !password) return alert('يرجى إدخال البريد وكلمة السر');
+
+      if (isSignUpMode) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) alert(error.message);
+        else alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) alert(error.message);
+        else setupUser(data.user);
+      }
+    }
+
+    async function setupUser(user) {
+      currentUser = user;
+      
+      // جلب بيانات الملف الشخصي والصلاحيات
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      currentUserProfile = profile;
+
+      if (profile.is_banned) {
+        alert('حسابك محظور من المشاركة في المحادثة.');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      document.getElementById('authContainer').classList.add('hidden');
+      document.getElementById('chatContainer').classList.remove('hidden');
+      document.getElementById('userBadge').innerText = `${profile.email} (${profile.role === 'admin' ? 'مسؤول' : 'مستخدم'})`;
+
+      if (profile.role === 'admin') {
+        document.getElementById('adminPanel').classList.remove('hidden');
+        loadUsers();
+      }
+
+      loadMessages();
+      listenForRealtime();
+    }
+
+    async function loadMessages() {
+      const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML = '';
+      messages.forEach(msg => appendMessage(msg));
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendMessage(msg) {
+      const chatBox = document.getElementById('chatBox');
+      const isOwn = currentUser && msg.user_id === currentUser.id;
+      const isAdmin = currentUserProfile && currentUserProfile.role === 'admin';
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${isOwn ? 'own' : ''}`;
+      msgDiv.id = `msg-${msg.id}`;
+
+      let deleteBtnHtml = isAdmin ? `<button class="delete-btn" onclick="deleteMessage(${msg.id})">حذف الرسالة</button>` : '';
+
+      msgDiv.innerHTML = `
+        <span class="sender">${msg.user_email}</span>
+        <div class="text">${msg.content}</div>
+        ${deleteBtnHtml}
+      `;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const content = input.value.trim();
+      if (!content) return;
+
+      const { error } = await supabase.from('messages').insert([
+        { user_id: currentUser.id, user_email: currentUser.email, content }
+      ]);
+
+      if (error) alert('فشل الإرسال: ' + error.message);
+      else input.value = '';
+    }
+
+    function listenForRealtime() {
+      supabase.channel('public:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          appendMessage(payload.new);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
+          const el = document.getElementById(`msg-${payload.old.id}`);
+          if (el) el.remove();
+        })
+        .subscribe();
+    }
+
+    // === وظائف المسؤول (Admin) ===
+    async function deleteMessage(id) {
+      await supabase.from('messages').delete().eq('id', id);
+    }
+
+    async function loadUsers() {
+      const { data: users } = await supabase.from('profiles').select('*');
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+
+      users.forEach(u => {
+        if (u.id === currentUser.id) return;
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.innerHTML = `
+          <span>${u.email} [${u.role}]</span>
+          <button class="${u.is_banned ? 'btn-success' : 'btn-danger'}" onclick="toggleBan('${u.id}', ${u.is_banned})">
+            ${u.is_banned ? 'إلغاء الحظر' : 'حظر'}
+          </button>
+        `;
+        userList.appendChild(div);
+      });
+    }
+
+    async function toggleBan(userId, currentStatus) {
+      await supabase.from('profiles').update({ is_banned: !currentStatus }).eq('id', userId);
+      loadUsers();
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      location.reload();
+    }
+  </script>
+</body>
+</html>
